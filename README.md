@@ -34,6 +34,30 @@
 docker image pull atareao/merino:latest
 ```
 
+### Configuration
+
+Make this config file `config.yml`,
+
+```
+users:
+  - username: username
+    password: password
+    active: true
+  - username: username1
+    password: password1
+    active: true
+  - username: username2
+    password: password2
+    active: false
+fqdns:
+  - addr: www.google.es
+    active: true
+  - addr: www.google.com
+    active: true
+```
+
+If you don't want to restrict acces to any fqdn, simple `fqdns: []`
+
 ### Usage
 
 ```bash

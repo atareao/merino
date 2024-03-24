@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 
-use merino::*;
+use merino::models::config::Config;
 use tracing_subscriber::Layer;
 use std::env;
 use std::error::Error;
@@ -14,6 +14,8 @@ use tracing_subscriber::{
     EnvFilter};
 use tracing::{trace, error, warn, debug};
 
+use merino::*;
+
 
 /// Logo to be printed at when merino is run
 const LOGO: &str = r"
@@ -25,7 +27,7 @@ const LOGO: &str = r"
 
  A SOCKS5 Proxy server written in Rust
 ";
-const USERS_FILE: &str = "users.yml";
+const CONFIG_FILE: &str = "config.yml";
 
 
 #[tokio::main]
@@ -78,15 +80,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         auth_methods.push(merino::AuthMethods::NoAuth as u8);
     }
     // Enable username/password auth
-    let authed_users: Result<Vec<User>, Box<dyn Error>> = if Path::new(USERS_FILE).exists(){
-        debug!("Exists {USERS_FILE}");
-        let users_file = PathBuf::from(USERS_FILE);
-        auth_methods.push(AuthMethods::UserPass as u8);
-        let file = std::fs::File::open(&users_file).unwrap_or_else(|e| {
-            error!("Can't open file {:?}: {}", &users_file, e);
+    let config: Result::<Config, Box<dyn Error>> = if Path::new(CONFIG_FILE).exists(){ 
+        debug!("Exists {CONFIG_FILE}");
+        let config_file = PathBuf::from(CONFIG_FILE);
+        let file = std::fs::File::open(&config_file).unwrap_or_else(|e| {
+            error!("Can't open file {:?}: {}", &config_file, e);
             std::process::exit(1);
         });
-
         let metadata = file.metadata()?;
         // 7 is (S_IROTH | S_IWOTH | S_IXOTH) or the "permisions for others" in unix
         if (metadata.mode() & 7) > 0 && allow_insecure {
@@ -95,27 +95,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 It is recommended that your users file is NOT accessible by others. \
                 To override this check, set --allow-insecure",
                 metadata.mode() & 0o777,
-                &users_file
+                &config_file
             );
             std::process::exit(1);
         }else{
             debug!("Permissions are ok");
         }
-
-        debug!("Loading users");
-        let users: Vec<User>  = serde_yaml::from_reader(file)
-            .expect("Cant read users file");
-        trace!("{:?}", users);
-        Ok(users)
+        debug!("Loading config");
+        let config: Config = serde_yaml::from_reader(file)
+            .expect("Cant read config file");
+        if !config.users.is_empty(){
+            auth_methods.push(AuthMethods::UserPass as u8);
+        }
+        trace!("{:?}", config);
+        Ok(config)
     }else{
-        Ok(Vec::new())
+        Ok(Config::default())
     };
 
-
-    let authed_users = authed_users?;
-
     // Create proxy server
-    let mut merino = Merino::new(port, &ip, auth_methods, authed_users, None).await?;
+    let mut merino = Merino::new(port, &ip, auth_methods, config?, None).await?;
 
     // Start Proxies
     merino.serve().await;

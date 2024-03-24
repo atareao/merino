@@ -13,4 +13,4 @@ services:
     ports:
       - "8388:8388"
     volumes:
-      - ./users.yml:/app/users.yml
+      - ./config.yml:/app/config.yml

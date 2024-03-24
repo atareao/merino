@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
-use serde_derive::Deserialize;
+pub mod models;
+
 use tracing::{trace, debug, error, info, warn};
 use snafu::Snafu;
 
-use core::fmt;
 use std::io;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::sync::Arc;
@@ -13,22 +13,15 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, lookup_host};
 use tokio::time::timeout;
 
+use models::{
+    config::Config,
+    user::User,
+};
+
 /// Version of socks
 const SOCKS_VERSION: u8 = 0x05;
 
 const RESERVED: u8 = 0x00;
-
-#[derive(Clone, Debug, PartialEq, Deserialize)]
-pub struct User {
-    pub username: String,
-    password: String,
-}
-
-impl fmt::Display for User{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        write!(f, "{} => {}", self.username, self.password)
-    }
-}
 
 pub struct SocksReply {
     // From rfc 1928 (S6),
@@ -202,8 +195,8 @@ pub enum AuthMethods {
 
 pub struct Merino {
     listener: TcpListener,
-    users: Arc<Vec<User>>,
     auth_methods: Arc<Vec<u8>>,
+    config: Arc<Config>,
     // Timeout for connections
     timeout: Option<Duration>,
 }
@@ -214,14 +207,14 @@ impl Merino {
         port: u16,
         ip: &str,
         auth_methods: Vec<u8>,
-        users: Vec<User>,
+        config: Config,
         timeout: Option<Duration>,
     ) -> io::Result<Self> {
         info!("Listening on {}:{}", ip, port);
         Ok(Merino {
             listener: TcpListener::bind((ip, port)).await?,
             auth_methods: Arc::new(auth_methods),
-            users: Arc::new(users),
+            config: Arc::new(config),
             timeout,
         })
     }
@@ -229,11 +222,11 @@ impl Merino {
     pub async fn serve(&mut self) {
         info!("Serving Connections...");
         while let Ok((stream, client_addr)) = self.listener.accept().await {
-            let users = self.users.clone();
+            let config = self.config.clone();
             let auth_methods = self.auth_methods.clone();
             let timeout = self.timeout;
             tokio::spawn(async move {
-                let mut client = SOCKClient::new(stream, users, auth_methods, timeout);
+                let mut client = SOCKClient::new(stream, config, auth_methods, timeout);
                 match client.init().await {
                     Ok(_) => {}
                     Err(error) => {
@@ -258,7 +251,7 @@ pub struct SOCKClient<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> {
     stream: T,
     auth_nmethods: u8,
     auth_methods: Arc<Vec<u8>>,
-    authed_users: Arc<Vec<User>>,
+    config: Arc<Config>,
     socks_version: u8,
     timeout: Option<Duration>,
 }
@@ -270,7 +263,7 @@ where
     /// Create a new SOCKClient
     pub fn new(
         stream: T,
-        authed_users: Arc<Vec<User>>,
+        config: Arc<Config>,
         auth_methods: Arc<Vec<u8>>,
         timeout: Option<Duration>,
     ) -> Self {
@@ -278,7 +271,7 @@ where
             stream,
             auth_nmethods: 0,
             socks_version: 0,
-            authed_users,
+            config,
             auth_methods,
             timeout,
         }
@@ -287,15 +280,15 @@ where
     /// Create a new SOCKClient with no auth
     pub fn new_no_auth(stream: T, timeout: Option<Duration>) -> Self {
         // FIXME: use option here
-        let authed_users: Arc<Vec<User>> = Arc::new(Vec::new());
         let no_auth: Vec<u8> = vec![AuthMethods::NoAuth as u8];
+        let config: Arc<Config> = Arc::new(Config::default());
         let auth_methods: Arc<Vec<u8>> = Arc::new(no_auth);
 
         SOCKClient {
             stream,
             auth_nmethods: 0,
             socks_version: 0,
-            authed_users,
+            config,
             auth_methods,
             timeout,
         }
@@ -304,11 +297,6 @@ where
     /// Mutable getter for inner stream
     pub fn stream_mut(&mut self) -> &mut T {
         &mut self.stream
-    }
-
-    /// Check if username + password pair are valid
-    fn authed(&self, user: &User) -> bool {
-        self.authed_users.contains(user)
     }
 
     /// Shutdown a client
@@ -390,10 +378,10 @@ where
             let username = String::from_utf8_lossy(&username).to_string();
             let password = String::from_utf8_lossy(&password).to_string();
 
-            let user = User { username, password };
+            let user = User { username, password , active: true};
 
             // Authenticate passwords
-            if self.authed(&user) {
+            if self.config.has_user(&user) {
                 debug!("Access Granted. User: {}", user.username);
                 let response = [1, ResponseCode::Success as u8];
                 self.stream.write_all(&response).await?;
@@ -443,6 +431,13 @@ where
         match req.command {
             // Use the Proxy to connect to the specified addr/port
             SockCommand::Connect => {
+                // This is a test
+                if self.config.has_fqdn(&displayed_addr){
+                    return Err(MerinoError::Io(std::io::Error::new(
+                        std::io::ErrorKind::AddrNotAvailable,
+                        "Address not allowed",
+                    )));
+                }
                 debug!("Handling CONNECT Command");
 
                 let sock_addr = addr_to_socket(&req.addr_type, &req.addr, req.port).await?;
