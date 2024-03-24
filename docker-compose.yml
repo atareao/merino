@@ -1,0 +1,13 @@
+version: "3.7"
+
+services:
+  merino:
+    image: atareao/merino:latest
+    container_name: merino
+    environment:
+      IP: "0.0.0.0"
+      PORT: "8388"
+      NO_AUTH: true
+      RUST_LOG: TRACE
+    ports:
+      - "8388:8388"

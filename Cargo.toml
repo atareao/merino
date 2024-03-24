@@ -16,7 +16,7 @@ lto = true
 csv = "1.3.0"
 serde = "1.0.197"
 serde_derive = "1.0.197"
-snafu = "0.7.5"
+snafu = "0.8.2"
 thiserror = "1.0.58"
 tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"

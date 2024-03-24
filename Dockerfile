@@ -40,7 +40,7 @@ RUN adduser \
     chown -R app:app /app
 
 WORKDIR /app
-USER merino
+USER app
 COPY --from=builder /app/merino /app/
 
 CMD ["/app/merino"]
