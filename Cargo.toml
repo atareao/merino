@@ -13,12 +13,11 @@ opt-level = 3
 lto = true
 
 [dependencies]
-clap = { version = "3.0.7", features = ["derive"] }
-csv = "1.1.6"
-log = "0.4.14"
-pretty_env_logger = "0.4.0"
-serde = "1.0.133"
-serde_derive = "1.0.133"
-snafu = "0.7.0"
-thiserror = "1.0.30"
-tokio = { version = "1.15.0", features = ["full"] }
+csv = "1.3.0"
+serde = "1.0.197"
+serde_derive = "1.0.197"
+snafu = "0.7.5"
+thiserror = "1.0.58"
+tokio = { version = "1.36.0", features = ["full"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["local-time", "env-filter"] }

@@ -1,8 +1,6 @@
 #![forbid(unsafe_code)]
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate log;
+use serde_derive::Deserialize;
+use tracing::{trace, debug, error, info, warn};
 use snafu::Snafu;
 
 use std::io;
@@ -226,7 +224,7 @@ impl Merino {
         while let Ok((stream, client_addr)) = self.listener.accept().await {
             let users = self.users.clone();
             let auth_methods = self.auth_methods.clone();
-            let timeout = self.timeout.clone();
+            let timeout = self.timeout;
             tokio::spawn(async move {
                 let mut client = SOCKClient::new(stream, users, auth_methods, timeout);
                 match client.init().await {
@@ -283,8 +281,7 @@ where
     pub fn new_no_auth(stream: T, timeout: Option<Duration>) -> Self {
         // FIXME: use option here
         let authed_users: Arc<Vec<User>> = Arc::new(Vec::new());
-        let mut no_auth: Vec<u8> = Vec::new();
-        no_auth.push(AuthMethods::NoAuth as u8);
+        let no_auth: Vec<u8> = vec![AuthMethods::NoAuth as u8];
         let auth_methods: Arc<Vec<u8>> = Arc::new(no_auth);
 
         SOCKClient {
@@ -426,7 +423,7 @@ where
 
         let req = SOCKSReq::from_stream(&mut self.stream).await?;
 
-        if req.addr_type == AddrType::V6 {}
+        //if req.addr_type == AddrType::V6 {}
 
         // Log Request
         let displayed_addr = pretty_print_addr(&req.addr_type, &req.addr);
@@ -508,7 +505,7 @@ async fn addr_to_socket(addr_type: &AddrType, addr: &[u8], port: u16) -> io::Res
             let new_addr = (0..8)
                 .map(|x| {
                     trace!("{} and {}", x * 2, (x * 2) + 1);
-                    (u16::from(addr[(x * 2)]) << 8) | u16::from(addr[(x * 2) + 1])
+                    (u16::from(addr[x * 2]) << 8) | u16::from(addr[(x * 2) + 1])
                 })
                 .collect::<Vec<u16>>();
 
@@ -553,7 +550,7 @@ fn pretty_print_addr(addr_type: &AddrType, addr: &[u8]) -> String {
             .join("."),
         AddrType::V6 => {
             let addr_16 = (0..8)
-                .map(|x| (u16::from(addr[(x * 2)]) << 8) | u16::from(addr[(x * 2) + 1]))
+                .map(|x| (u16::from(addr[x * 2]) << 8) | u16::from(addr[(x * 2) + 1]))
                 .collect::<Vec<u16>>();
 
             addr_16
