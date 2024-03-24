@@ -9,5 +9,8 @@ services:
       PORT: "8388"
       NO_AUTH: true
       RUST_LOG: TRACE
+      TZ: Europe/Madrid
     ports:
       - "8388:8388"
+    volumes:
+      - ./users.yml:/app/users.yml

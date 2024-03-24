@@ -13,11 +13,13 @@ opt-level = 3
 lto = true
 
 [dependencies]
-csv = "1.3.0"
-serde = "1.0.197"
+chrono = "0.4.35"
+serde = { version = "1.0.197", features = ["derive"] }
 serde_derive = "1.0.197"
+serde_yaml = "0.9.33"
 snafu = "0.8.2"
 thiserror = "1.0.58"
+time = { version = "0.3.34", features = ["local-offset"] }
 tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["local-time", "env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "std", "time"] }

@@ -3,6 +3,7 @@ use serde_derive::Deserialize;
 use tracing::{trace, debug, error, info, warn};
 use snafu::Snafu;
 
+use core::fmt;
 use std::io;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::sync::Arc;
@@ -21,6 +22,12 @@ const RESERVED: u8 = 0x00;
 pub struct User {
     pub username: String,
     password: String,
+}
+
+impl fmt::Display for User{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        write!(f, "{} => {}", self.username, self.password)
+    }
 }
 
 pub struct SocksReply {
