@@ -12,7 +12,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{
     layer::SubscriberExt,
     EnvFilter};
-use tracing::{error, warn, debug};
+use tracing::{trace, error, warn, debug};
 
 
 /// Logo to be printed at when merino is run
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         debug!("Loading users");
         let users: Vec<User>  = serde_yaml::from_reader(file)
             .expect("Cant read users file");
-        debug!("{:?}", users);
+        trace!("{:?}", users);
         Ok(users)
     }else{
         Ok(Vec::new())
