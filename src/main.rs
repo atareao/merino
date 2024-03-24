@@ -86,7 +86,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             error!("Can't open file {:?}: {}", &users_file, e);
             std::process::exit(1);
         });
-        debug!("Metadata");
 
         let metadata = file.metadata()?;
         // 7 is (S_IROTH | S_IWOTH | S_IXOTH) or the "permisions for others" in unix
@@ -100,10 +99,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             );
             std::process::exit(1);
         }else{
-            debug!("Okis");
+            debug!("Permissions are ok");
         }
 
-        debug!("Going to load users");
+        debug!("Loading users");
         let users: Vec<User>  = serde_yaml::from_reader(file)
             .expect("Cant read users file");
         debug!("{:?}", users);

@@ -25,61 +25,17 @@
 - `SOCKS5` Compatible Authentication methods:
   - `NoAuth`
   - Username & Password
-  - `GSSAPI` Coming Soon!
 
 ## 📦 Installation & 🏃 Usage
 
 ### Installation
 
 ```bash
-cargo install merino
-```
-
-OR
-
-```bash
-git clone https://github.com/ajmwagar/merino
-cd merino
-cargo install --path .
-```
-
-OR
-
-```bash
-docker image pull ghcr.io/ajmwagar/merino:latest
+docker image pull atareao/merino:latest
 ```
 
 ### Usage
 
 ```bash
-# Start a SOCKS5 Proxy server listening on port 1080 without authentication
-merino --no-auth
-
-# Use username/password authentication and read users from users.csv
-merino --users users.csv
-
-# Display a help menu
-merino --help
+docker compose up -d
 ```
-
-OR
-
-```bash
-docker container run --pull=always --name=merino -p=8001:8001 ghcr.io/ajmwagar/merino:latest --no-auth --port=8001
-```
-
-# 🚥 Roadmap
-
-- [x] IPV6 Support
-- [ ] `SOCKS5` Authentication Methods
-  - [x] `NOAUTH`
-  - [x] `USERPASS`
-  - [ ] `GSSAPI` Coming Soon!
-- [ ] Custom plugin/middleware support
-- [ ] `SOCKS5` Commands
-  - [x] `CONNECT`
-  - [ ] `BIND`
-  - [ ] `ASSOCIATE`
-- [ ] Benchmarks & Unit tests
-- [ ] [Actix](https://github.com/actix-rs/actix) based backend
-- [ ] `SOCKS4`/`SOCKS4a` Support
